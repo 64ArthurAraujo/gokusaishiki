@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <time.h>
+#include <glib.h>
 
 #include "ledctl.h"
 #include "defs.h"
@@ -105,8 +106,26 @@ int set_keyboard_color(libusb_device_handle *h, uint8_t r, uint8_t g, uint8_t b)
     return 0;
 }
 
+static gint interval = 250;
+
+static GOptionEntry entries[] = {
+    {"interval", 'i', 0, G_OPTION_ARG_INT, &interval, "Interval in milliseconds that the keyboard's color is updated", "N"},
+    G_OPTION_ENTRY_NULL};
+
 int main(int argc, char **argv)
 {
+    GError *error = NULL;
+
+    GOptionContext *context = g_option_context_new("- Dynamic keyboard RGB based on the screen's content");
+
+    g_option_context_add_main_entries(context, entries, NULL);
+
+    if (!g_option_context_parse(context, &argc, &argv, &error))
+    {
+        g_print("option parsing failed: %s\n", error->message);
+        return 1;
+    }
+
     libusb_context *ctx = NULL;
     libusb_device_handle *handle = NULL;
 
@@ -130,7 +149,7 @@ int main(int argc, char **argv)
     if (claim_interface(handle) < 0)
         goto cleanup;
 
-    if (run_screen_sync(handle, 250) != 0)
+    if (run_screen_sync(handle, interval) != 0)
     {
         fprintf(stderr, "Screen sync failed\n");
         goto cleanup;
