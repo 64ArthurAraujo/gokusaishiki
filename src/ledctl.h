@@ -9,3 +9,4 @@ int set_fixed_mode(libusb_device_handle *h);
 int set_color(libusb_device_handle *h, uint8_t r, uint8_t g, uint8_t b);
 int parse_color(const char *s, uint8_t *r, uint8_t *g, uint8_t *b);
 int set_brightness(libusb_device_handle *h, int level);
+int set_keyboard_color(libusb_device_handle *h, uint8_t r, uint8_t g, uint8_t b);
