@@ -1,0 +1,8 @@
+set pagination off
+set print pretty on
+set confirm off
+set debuginfod enabled off
+
+# Break on abnormal exits and sanitizer reports
+break abort
+break __ubsan::Diag::~Diag

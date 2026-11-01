@@ -1,0 +1,9 @@
+{
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/arthur/repos/gokusaishiki",
+            "binaryPath": "/home/arthur/repos/gokusaishiki/gokusaishiki",
+            "binaryArgs": []
+        }
+    ]
+}
