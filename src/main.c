@@ -22,7 +22,7 @@
 static gint interval = 250;
 
 static GOptionEntry entries[] = {
-    {"interval", 'i', 0, G_OPTION_ARG_INT, &interval, "Interval in milliseconds that the keyboard's color is updated", "N"},
+    {"interval", 'i', 0, G_OPTION_ARG_INT, &interval, "Interval in milliseconds that the keyboard's color is updated", "250"},
     G_OPTION_ENTRY_NULL};
 
 int main(int argc, char **argv)
