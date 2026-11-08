@@ -139,3 +139,19 @@ int set_brightness(libusb_device_handle *h, int level)
         return -1;
     return send_packet(h, end);
 }
+
+int set_keyboard_color(libusb_device_handle *h, uint8_t r, uint8_t g, uint8_t b)
+{
+    if (set_fixed_mode(h) != 0)
+    {
+        fprintf(stderr, "Failed to select fixed mode\n");
+        return 1;
+    }
+    if (set_color(h, r, g, b) != 0)
+    {
+        fprintf(stderr, "Failed to set color\n");
+        return 1;
+    }
+
+    return 0;
+}
