@@ -19,3 +19,9 @@
 #define COLOR_CHANGE_MIN   24    /* min change (sum of |dR|+|dG|+|dB|) to resend */
 #define INTERVAL_DEFAULT  500    /* ms between screen samples */
 #define INTERVAL_MIN      200
+
+#define SMOOTH_DEFAULT_MS 300    /* color fade time constant (0 = no smoothing) */
+#define RATE_DEFAULT_HZ    20    /* max keyboard color updates per second */
+#define RATE_MIN_HZ         1
+#define RATE_MAX_HZ        60
+#define TARGET_DEADBAND     8    /* with smoothing: ignore target changes below this */

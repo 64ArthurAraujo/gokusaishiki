@@ -12,6 +12,7 @@
 
 #include "defs.h"
 #include "screen-color.h"
+#include "color-smooth.h"
 #include "ledctl.h"
 
 static volatile sig_atomic_t g_stop = 0;
@@ -27,7 +28,38 @@ static int color_distance(rgb_t a, rgb_t b)
     return abs((int)a.r - b.r) + abs((int)a.g - b.g) + abs((int)a.b - b.b);
 }
 
-int run_screen_sync(libusb_device_handle *h, int interval_ms)
+static bool same_color(rgb_t a, rgb_t b)
+{
+    return a.r == b.r && a.g == b.g && a.b == b.b;
+}
+
+static double now_ms(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec * 1000.0 + (double)ts.tv_nsec / 1e6;
+}
+
+static void sleep_ms(double ms)
+{
+    if (ms <= 0.0)
+        return;
+
+    time_t sec = (time_t)(ms / 1000.0);
+    struct timespec delay = {
+        .tv_sec = sec,
+        .tv_nsec = (long)((ms - (double)sec * 1000.0) * 1e6),
+    };
+    nanosleep(&delay, NULL); /* interrupted by Ctrl-C, the loop then exits */
+}
+
+/*
+ * Two things happen at different speeds:
+ *   - every interval_ms the screen is sampled, which sets the TARGET color;
+ *   - every 1000/rate_hz ms the displayed color takes a step toward the
+ *     target (see smooth_step) and, if it changed, is sent to the keyboard.
+ */
+int run_screen_sync(libusb_device_handle *h, int interval_ms, int smooth_ms, int rate_hz)
 {
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
@@ -43,42 +75,66 @@ int run_screen_sync(libusb_device_handle *h, int interval_ms)
         return -1;
     printf("Capture backend: %s\n", screen_capture_backend_name(cap));
 
-    struct timespec delay = {
-        .tv_sec = interval_ms / 1000,
-        .tv_nsec = (long)(interval_ms % 1000) * 1000000L,
-    };
+    const double tick_ms = 1000.0 / (double)rate_hz;
+    const int deadband = smooth_ms > 0 ? TARGET_DEADBAND : COLOR_CHANGE_MIN;
 
-    rgb_t last = {0, 0, 0};
-    bool have_last = false;
+    colorf_t current = {0, 0, 0};
+    rgb_t target = {0, 0, 0};
+    rgb_t sent = {0, 0, 0};
+    bool have_target = false;
+    bool have_sent = false;
+    double next_sample = 0.0;
+    double last_step = now_ms();
     int ret = 0;
 
-    printf("Syncing keyboard to screen every %d ms (Ctrl-C to stop)\n",
-           interval_ms);
+    printf("Syncing keyboard to screen: sample every %d ms, smoothing %d ms, max %d updates/s (Ctrl-C to stop)\n",
+           interval_ms, smooth_ms, rate_hz);
 
     while (!g_stop)
     {
-        rgb_t now;
+        double t0 = now_ms();
 
-        if (screen_capture_dominant_color(cap, &now) != 0)
+        if (t0 >= next_sample)
         {
-            ret = -1;
-            break;
-        }
+            rgb_t sample;
 
-        if (!have_last || color_distance(now, last) >= COLOR_CHANGE_MIN)
-        {
-            if (set_color(h, now.r, now.g, now.b) != 0)
+            if (screen_capture_dominant_color(cap, &sample) != 0)
             {
                 ret = -1;
                 break;
             }
-            last = now;
-            have_last = true;
-            printf("\rColor: %02x%02x%02x ", now.r, now.g, now.b);
+
+            if (!have_target)
+            {
+                target = sample;
+                smooth_reset(&current, sample); /* first color: no fade from black */
+                have_target = true;
+            }
+            else if (color_distance(sample, target) >= deadband)
+            {
+                target = sample; /* small jitters are ignored */
+            }
+
+            next_sample = t0 + interval_ms;
+        }
+
+        rgb_t out = smooth_step(&current, target, t0 - last_step, smooth_ms);
+        last_step = t0;
+
+        if (!have_sent || !same_color(out, sent))
+        {
+            if (set_color(h, out.r, out.g, out.b) != 0)
+            {
+                ret = -1;
+                break;
+            }
+            sent = out;
+            have_sent = true;
+            printf("\rColor: %02x%02x%02x ", out.r, out.g, out.b);
             fflush(stdout);
         }
 
-        nanosleep(&delay, NULL);
+        sleep_ms(tick_ms - (now_ms() - t0));
     }
 
     printf("\nStopped\n");
