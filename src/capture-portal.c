@@ -8,7 +8,7 @@
  *      Each of the first three answers asynchronously through a
  *      org.freedesktop.portal.Request "Response" signal.
  *   2. The compositor asks the user to share a screen (one-time: a restore
- *      token is saved in ~/.config/kbd_rgb/restore_token so later runs
+ *      token is saved in ~/.config/gokusaishiki/restore_token so later runs
  *      don't ask again, when the portal supports it).
  *   3. PipeWire: connect to the returned fd and receive video frames. Each
  *      frame (at most every FRAME_INTERVAL_MS) is reduced to a dominant
@@ -86,7 +86,7 @@ typedef struct {
 
 static char *token_path(void)
 {
-    return g_build_filename(g_get_user_config_dir(), "kbd_rgb", "restore_token", NULL);
+    return g_build_filename(g_get_user_config_dir(), "gokusaishiki", "restore_token", NULL);
 }
 
 static char *load_token(void)
@@ -161,7 +161,7 @@ static gboolean on_tick(gpointer user)
 static char *make_token(void)
 {
     static unsigned counter = 0;
-    return g_strdup_printf("kbd_rgb_%u_%u", (unsigned)getpid(), counter++);
+    return g_strdup_printf("gokusaishiki_%u_%u", (unsigned)getpid(), counter++);
 }
 
 /*
@@ -302,7 +302,7 @@ static int portal_setup(portal_t *p, int *pw_fd, uint32_t *node_id)
         fprintf(stderr, "Cannot connect to the session D-Bus: %s\n", err->message);
         if (geteuid() == 0)
             fprintf(stderr,
-                    "You are running as root. Run kbd_rgb as your normal user "
+                    "You are running as root. Run gokusaishiki as your normal user "
                     "(see 99-kbd-rgb.rules to allow USB access without sudo).\n");
         g_error_free(err);
         return -1;
@@ -525,7 +525,7 @@ static int pw_start(portal_t *p, int fd, uint32_t node_id)
     p->pw_inited = true;
     pw_init(NULL, NULL);
 
-    p->loop = pw_thread_loop_new("kbd_rgb-pw", NULL);
+    p->loop = pw_thread_loop_new("gokusaishiki-pw", NULL);
     if (!p->loop)
         return -1;
     p->context = pw_context_new(pw_thread_loop_get_loop(p->loop), NULL, 0);
@@ -544,7 +544,7 @@ static int pw_start(portal_t *p, int fd, uint32_t node_id)
         return -1;
     }
 
-    p->stream = pw_stream_new(p->core, "kbd_rgb",
+    p->stream = pw_stream_new(p->core, "gokusaishiki",
         pw_properties_new(PW_KEY_MEDIA_TYPE, "Video",
                           PW_KEY_MEDIA_CATEGORY, "Capture",
                           PW_KEY_MEDIA_ROLE, "Screen", NULL));
@@ -628,7 +628,7 @@ static void portal_close(void *impl)
 
 static void *portal_open(void)
 {
-    g_debug = getenv("KBD_RGB_DEBUG") != NULL;
+    g_debug = getenv("SHIKI_DEBUG") != NULL;
 
     portal_t *p = calloc(1, sizeof(*p));
     if (!p)
@@ -678,7 +678,7 @@ static void *portal_open(void)
 
     if (!ok) {
         fprintf(stderr, "No video frames received from the compositor "
-                        "(try KBD_RGB_DEBUG=1 for details)\n");
+                        "(try SHIKI_DEBUG=1 for details)\n");
         portal_close(p);
         return NULL;
     }

@@ -120,11 +120,11 @@ void screen_capture_set_abort_flag(volatile sig_atomic_t *flag)
 
 static const capture_backend_t *choose_backend(void)
 {
-    const char *force = getenv("KBD_RGB_CAPTURE");
+    const char *force = getenv("SHIKI_CAPTURE");
     if (force) {
         // if (strcmp(force, "x11") == 0)    return &capture_backend_x11;
         if (strcmp(force, "portal") == 0) return &capture_backend_portal;
-        fprintf(stderr, "Unknown KBD_RGB_CAPTURE='%s' (use x11 or portal)\n", force);
+        fprintf(stderr, "Unknown SHIKI_CAPTURE='%s' (use x11 or portal)\n", force);
     }
 
     const char *session = getenv("XDG_SESSION_TYPE");

@@ -4,7 +4,7 @@
  * Backends (chosen automatically):
  *   - "portal": Wayland/GNOME, via xdg-desktop-portal ScreenCast + PipeWire
  *   - "x11":    X11, via Xlib
- * Force one with the environment variable KBD_RGB_CAPTURE=x11|portal.
+ * Force one with the environment variable SHIKI_CAPTURE=x11|portal.
  *
  * Usage:
  *   screen_capture_t *cap = screen_capture_open();
